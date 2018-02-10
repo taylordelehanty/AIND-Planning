@@ -305,15 +305,14 @@ class PlanningGraph():
         #   set iff all prerequisite literals for the action hold in S0.  This can be accomplished by testing
         #   to see if a proposed PgNode_a has prenodes that are a subset of the previous S level.  Once an
         #   action node is added, it MUST be connected to the S node instances in the appropriate s_level set.
-        pg_s_parents = [pg_s for pg_s in self.s_levels[-1]]
         self.a_levels.append(set())
         for action in self.all_actions:
             pg_a = PgNode_a(action)
-            for pg_s in pg_s_parents:
+            for pg_s in self.s_levels[level]:
                 if pg_s in pg_a.prenodes:
                     pg_a.parents.add(pg_s)
                     pg_s.children.add(pg_a)
-                    self.a_levels[-1].add(pg_a)
+                    self.a_levels[level].add(pg_a)
 
     def add_literal_level(self, level):
         """ add an S (literal) level to the Planning Graph
@@ -331,13 +330,12 @@ class PlanningGraph():
         #   may be "added" to the set without fear of duplication.  However, it is important to then correctly create and connect
         #   all of the new S nodes as children of all the A nodes that could produce them, and likewise add the A nodes to the
         #   parent sets of the S nodes
-        pg_a_parents = [pg_a for pg_a in self.a_levels[-1]]
         self.s_levels.append(set())
-        for pg_a in pg_a_parents:
+        for pg_a in self.a_levels[level-1]:
             for pg_s in pg_a.effnodes:
                 pg_a.children.add(pg_s)
                 pg_s.parents.add(pg_a)
-                self.s_levels[-1].add(pg_s)
+                self.s_levels[level].add(pg_s)
         
     def update_a_mutex(self, nodeset):
         """ Determine and update sibling mutual exclusion for A-level nodes
@@ -398,8 +396,6 @@ class PlanningGraph():
             for a2_eff in node_a2.effnodes:
                 if a1_eff.symbol == a2_eff.symbol and a1_eff.is_pos != a2_eff.is_pos:
                     return True
-                if a1_eff.is_mutex(a2_eff) or a2_eff.is_mutex(a1_eff):
-                    return True
         
         return False
 
@@ -421,15 +417,15 @@ class PlanningGraph():
             for pre_a2 in node_a2.prenodes:
                 if eff_a1.symbol == pre_a2.symbol and eff_a1.is_pos != pre_a2.is_pos:
                     return True
-                if eff_a1.is_mutex(pre_a2) or pre_a2.is_mutex(eff_a1):
-                    return True
+                # if eff_a1.is_mutex(pre_a2) or pre_a2.is_mutex(eff_a1):
+                #     return True
 
         for eff_a2 in node_a2.effnodes:
             for pre_a1 in node_a1.prenodes:
                 if eff_a2.symbol == pre_a1.symbol and eff_a2.is_pos != pre_a1.is_pos:
                     return True
-                if eff_a2.is_mutex(pre_a1) or pre_a1.is_mutex(eff_a2):
-                    return True
+                # if eff_a2.is_mutex(pre_a1) or pre_a1.is_mutex(eff_a2):
+                #     return True
         return False
 
     def competing_needs_mutex(self, node_a1: PgNode_a, node_a2: PgNode_a) -> bool:
@@ -484,8 +480,8 @@ class PlanningGraph():
         """
         if node_s1.symbol == node_s2.symbol and node_s1.is_pos != node_s2.is_pos:
             return True
-        if node_s1.is_mutex(node_s2) or node_s2.is_mutex(node_s1):
-            return True
+        # if node_s1.is_mutex(node_s2) or node_s2.is_mutex(node_s1):
+        #     return True
         return False
 
     def inconsistent_support_mutex(self, node_s1: PgNode_s, node_s2: PgNode_s):
