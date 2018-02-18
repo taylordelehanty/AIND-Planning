@@ -308,11 +308,12 @@ class PlanningGraph():
         self.a_levels.append(set())
         for action in self.all_actions:
             pg_a = PgNode_a(action)
-            for pg_s in self.s_levels[level]:
-                if pg_s in pg_a.prenodes:
-                    pg_a.parents.add(pg_s)
-                    pg_s.children.add(pg_a)
-                    self.a_levels[level].add(pg_a)
+            for pre_pg_s in pg_a.prenodes:
+                for lvl_pg_s in self.s_levels[level]:
+                    if lvl_pg_s.__eq__(pre_pg_s):
+                        pg_a.parents.add(lvl_pg_s)
+                        lvl_pg_s.children.add(pg_a)
+                        self.a_levels[level].add(pg_a)
 
     def add_literal_level(self, level):
         """ add an S (literal) level to the Planning Graph
@@ -331,6 +332,10 @@ class PlanningGraph():
         #   all of the new S nodes as children of all the A nodes that could produce them, and likewise add the A nodes to the
         #   parent sets of the S nodes
         self.s_levels.append(set())
+        # for literal in self.fs.pos:
+        #     self.s_levels[level].add(PgNode_s(literal, True))
+        # for literal in self.fs.neg:
+        #     self.s_levels[level].add(PgNode_s(literal, False))
         for pg_a in self.a_levels[level-1]:
             for pg_s in pg_a.effnodes:
                 pg_a.children.add(pg_s)
@@ -514,14 +519,22 @@ class PlanningGraph():
         level_sum = 0
         goals_left = self.problem.goal
         level = 0
+        literal = None
 
         while goals_left:
             s_set = self.s_levels[level]
             for s in list(s_set):
-                if s.is_pos and s.symbol in goals_left:
+                if s.is_pos:
+                    literal = s.symbol
+                else: #s.is_neg
+                    literal = expr('~{}'.format((s.symbol)))
+                if literal in goals_left:
                     idx = goals_left.index(s.symbol)
                     del goals_left[idx]
                     level_sum += level
+                    if not goals_left:
+                        break
+                    
             level += 1
 
         return level_sum
