@@ -399,11 +399,19 @@ class PlanningGraph():
         :param node_a2: PgNode_a
         :return: bool
         """
+        # Old way
         for a1_eff in node_a1.effnodes:
             for a2_eff in node_a2.effnodes:
                 if a1_eff.symbol == a2_eff.symbol and a1_eff.is_pos != a2_eff.is_pos:
                     return True
-        
+
+        # New way following HINT
+        # pg_a_1 = node_a1.action
+        # pg_a_2 = node_a2.action
+        # for effect_pos in pg_a_1.effect_add:
+        #     for effect_neg in pg_a_2.effect_rem:
+        #         if effect_pos.__eq__(effect_neg):
+        #             return True
         return False
 
     def interference_mutex(self, node_a1: PgNode_a, node_a2: PgNode_a) -> bool:
@@ -519,19 +527,18 @@ class PlanningGraph():
         :return: int
         """
         level_sum = 0
-        goals_left = self.problem.goal
+        goals_left = list(self.problem.goal)
 
-        while goals_left:
-            for level, s_set in enumerate(self.s_levels):
-                for s in s_set:
-                    literal = s.symbol
-                    if not s.is_pos:
-                        literal = expr('~{}'.format((s.symbol)))
-                    if literal in goals_left:
-                        idx = goals_left.index(s.symbol)
-                        del goals_left[idx]
-                        level_sum += level
-                        if not goals_left:
-                            break
+        for level, s_set in enumerate(self.s_levels):
+            for s in s_set:
+                literal = s.symbol
+                if not s.is_pos:
+                    literal = expr('~{}'.format((s.symbol)))
+                if literal in goals_left:
+                    idx = goals_left.index(s.symbol)
+                    del goals_left[idx]
+                    level_sum += level
+                    if not goals_left:
+                        break
 
         return level_sum
